@@ -26,8 +26,10 @@ interface GeneratedImage {
     error?: string;
 }
 
-const primaryButtonClasses = "font-permanent-marker text-xl text-center text-black bg-yellow-400 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[2px_2px_0px_2px_rgba(0,0,0,0.2)]";
+const primaryButtonClasses = "font-permanent-marker text-xl text-center text-black bg-yellow-400 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[2px_2px_0px_2px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:bg-yellow-400";
 const secondaryButtonClasses = "font-permanent-marker text-xl text-center text-white bg-white/10 backdrop-blur-sm border-2 border-white/80 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:rotate-2 hover:bg-white hover:text-black";
+const inputClasses = "w-full bg-white/10 border-2 border-white/80 rounded-sm p-2 text-center font-permanent-marker text-xl focus:outline-none focus:ring-2 focus:ring-yellow-400";
+
 
 const useMediaQuery = (query: string) => {
     const [matches, setMatches] = useState(false);
@@ -53,6 +55,8 @@ const generatePositions = (count: number) => {
 };
 
 function App() {
+    const [userApiKey, setUserApiKey] = useState('');
+    const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-image-preview');
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [generatedImages, setGeneratedImages] = useState<Record<string, GeneratedImage>>({});
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -67,6 +71,19 @@ function App() {
     const [steps, setSteps] = useState('6');
     const [timePeriods, setTimePeriods] = useState<string[]>([]);
     const [cardPositions, setCardPositions] = useState<{top: string, left: string, rotate: number}[]>([]);
+
+    useEffect(() => {
+        const savedKey = localStorage.getItem('gemini-api-key');
+        if (savedKey) {
+            setUserApiKey(savedKey);
+        }
+    }, []);
+
+    const handleApiKeyChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const key = e.target.value;
+        setUserApiKey(key);
+        localStorage.setItem('gemini-api-key', key);
+    };
 
 
     const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -83,7 +100,7 @@ function App() {
     };
 
     const handleGenerateClick = async () => {
-        if (!uploadedImage) return;
+        if (!uploadedImage || !userApiKey) return;
 
         const numStart = parseInt(startYear, 10);
         const numEnd = parseInt(endYear, 10);
@@ -124,7 +141,7 @@ function App() {
         const processDecade = async (decade: string) => {
             try {
                 const prompt = `Reimagine the person in this photo in the style of ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that time period. The output must be a photorealistic image showing the person clearly.`;
-                const resultUrl = await generateDecadeImage(uploadedImage, prompt);
+                const resultUrl = await generateDecadeImage(uploadedImage, prompt, userApiKey, selectedModel);
                 setGeneratedImages(prev => ({
                     ...prev,
                     [decade]: { status: 'done', url: resultUrl },
@@ -155,7 +172,7 @@ function App() {
     };
 
     const handleRegenerateDecade = async (decade: string) => {
-        if (!uploadedImage) return;
+        if (!uploadedImage || !userApiKey) return;
 
         if (generatedImages[decade]?.status === 'pending') return;
         
@@ -165,7 +182,7 @@ function App() {
 
         try {
             const prompt = `Reimagine the person in this photo in the style of ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that decade. The output must be a photorealistic image showing the person clearly.`;
-            const resultUrl = await generateDecadeImage(uploadedImage, prompt);
+            const resultUrl = await generateDecadeImage(uploadedImage, prompt, userApiKey, selectedModel);
             setGeneratedImages(prev => ({
                 ...prev,
                 [decade]: { status: 'done', url: resultUrl },
@@ -230,17 +247,46 @@ function App() {
         }
     };
     
-    const inputClasses = "w-32 bg-white/10 border-2 border-white/80 rounded-sm p-2 text-center font-permanent-marker text-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+    const rangeInputClasses = "w-32 bg-white/10 border-2 border-white/80 rounded-sm p-2 text-center font-permanent-marker text-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
     return (
         <main className="bg-black text-neutral-200 min-h-screen w-full flex flex-col items-center justify-center p-4 pb-24 overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-full bg-grid-white/[0.05]"></div>
             
             <div className="z-10 flex flex-col items-center justify-center w-full h-full flex-1 min-h-0">
-                <div className="text-center mb-10">
+                <div className="text-center mb-8">
                     <h1 className="text-6xl md:text-8xl font-caveat font-bold text-neutral-100">Past Forward</h1>
                     <p className="font-permanent-marker text-neutral-300 mt-2 text-xl tracking-wide">Generate yourself through the decades.</p>
                 </div>
+                
+                 {/* Configuration Section */}
+                <div className="w-full max-w-lg bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-4 sm:p-6 mb-8 flex flex-col gap-4 text-white shadow-lg">
+                    <h2 className="font-permanent-marker text-2xl text-center text-yellow-400 mb-2">Configuration</h2>
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor="api-key" className="font-permanent-marker text-lg text-neutral-300">Gemini API Key</label>
+                        <input
+                            id="api-key"
+                            type="password"
+                            value={userApiKey}
+                            onChange={handleApiKeyChange}
+                            placeholder="Enter your API Key here"
+                            className={inputClasses}
+                        />
+                    </div>
+                     <div className="flex flex-col gap-2">
+                        <label htmlFor="model-select" className="font-permanent-marker text-lg text-neutral-300">AI Model</label>
+                        <select
+                            id="model-select"
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            className={`${inputClasses} cursor-pointer`}
+                        >
+                            <option value="gemini-2.5-flash-image-preview">gemini-2.5-flash-image-preview (Edit)</option>
+                            <option value="gemini-2.5-flash">gemini-2.5-flash (General)</option>
+                        </select>
+                    </div>
+                </div>
+
 
                 {appState === 'idle' && (
                      <div className="relative flex flex-col items-center justify-center w-full">
@@ -267,15 +313,15 @@ function App() {
                              transition={{ delay: 2, duration: 0.8, type: 'spring' }}
                              className="flex flex-col items-center"
                         >
-                            <label htmlFor="file-upload" className="cursor-pointer group transform hover:scale-105 transition-transform duration-300">
+                            <label htmlFor="file-upload" className={`cursor-pointer group transform hover:scale-105 transition-transform duration-300 ${!userApiKey && 'cursor-not-allowed opacity-60'}`}>
                                  <PolaroidCard 
-                                     caption="Click to begin"
+                                     caption={!userApiKey ? "API Key Required" : "Click to begin"}
                                      status="done"
                                  />
                             </label>
-                            <input id="file-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleImageUpload} />
+                            <input id="file-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleImageUpload} disabled={!userApiKey} />
                             <p className="mt-8 font-permanent-marker text-neutral-500 text-center max-w-xs text-lg">
-                                Click the polaroid to upload your photo and start your journey through time.
+                                 {userApiKey ? 'Click the polaroid to upload your photo and start your journey through time.' : 'Please enter your Gemini API Key above to begin.'}
                             </p>
                         </motion.div>
                     </div>
@@ -297,15 +343,15 @@ function App() {
                         <div className="w-full max-w-lg bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-6 my-4 flex flex-col sm:flex-row items-center justify-center gap-6 text-white shadow-lg">
                             <div className="flex flex-col items-center">
                                 <label htmlFor="start-year" className="font-permanent-marker text-lg text-neutral-300 mb-2">Start Year</label>
-                                <input id="start-year" type="number" min="1900" max="2050" value={startYear} onChange={(e) => setStartYear(e.target.value)} className={inputClasses}/>
+                                <input id="start-year" type="number" min="1900" max="2050" value={startYear} onChange={(e) => setStartYear(e.target.value)} className={rangeInputClasses}/>
                             </div>
                             <div className="flex flex-col items-center">
                                 <label htmlFor="end-year" className="font-permanent-marker text-lg text-neutral-300 mb-2">End Year</label>
-                                <input id="end-year" type="number" min="1900" max="2050" value={endYear} onChange={(e) => setEndYear(e.target.value)} className={inputClasses}/>
+                                <input id="end-year" type="number" min="1900" max="2050" value={endYear} onChange={(e) => setEndYear(e.target.value)} className={rangeInputClasses}/>
                             </div>
                             <div className="flex flex-col items-center">
                                 <label htmlFor="steps" className="font-permanent-marker text-lg text-neutral-300 mb-2"># of Photos</label>
-                                <input id="steps" type="number" min="2" max="12" value={steps} onChange={(e) => setSteps(e.target.value)} className={inputClasses}/>
+                                <input id="steps" type="number" min="2" max="12" value={steps} onChange={(e) => setSteps(e.target.value)} className={rangeInputClasses}/>
                             </div>
                         </div>
 
@@ -313,7 +359,7 @@ function App() {
                             <button onClick={handleReset} className={secondaryButtonClasses}>
                                 Different Photo
                             </button>
-                            <button onClick={handleGenerateClick} className={primaryButtonClasses} disabled={isLoading}>
+                            <button onClick={handleGenerateClick} className={primaryButtonClasses} disabled={isLoading || !userApiKey}>
                                 {isLoading ? "Generating..." : "Generate"}
                             </button>
                          </div>
@@ -380,7 +426,7 @@ function App() {
                                     <button 
                                         onClick={handleDownloadAlbum} 
                                         disabled={isDownloading} 
-                                        className={`${primaryButtonClasses} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        className={`${primaryButtonClasses}`}
                                     >
                                         {isDownloading ? 'Creating Album...' : 'Download Album'}
                                     </button>

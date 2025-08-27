@@ -5,15 +5,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { GenerateContentResponse } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable is not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-
 // --- Helper Functions ---
 
 /**
@@ -31,7 +22,7 @@ function getFallbackPrompt(decade: string): string {
  * @returns The decade string or null if not found.
  */
 function extractDecade(prompt: string): string | null {
-    const match = prompt.match(/(\d{4}s)/);
+    const match = prompt.match(/(\d{4}s|\d{4})/);
     return match ? match[1] : null;
 }
 
@@ -55,18 +46,25 @@ function processGeminiResponse(response: GenerateContentResponse): string {
 
 /**
  * A wrapper for the Gemini API call that includes a retry mechanism for internal server errors.
+ * @param ai The initialized GoogleGenAI client instance.
+ * @param model The model name to use for generation.
  * @param imagePart The image part of the request payload.
  * @param textPart The text part of the request payload.
  * @returns The GenerateContentResponse from the API.
  */
-async function callGeminiWithRetry(imagePart: object, textPart: object): Promise<GenerateContentResponse> {
+async function callGeminiWithRetry(
+    ai: GoogleGenAI,
+    model: string,
+    imagePart: object,
+    textPart: object
+): Promise<GenerateContentResponse> {
     const maxRetries = 3;
     const initialDelay = 1000;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             return await ai.models.generateContent({
-                model: 'gemini-2.5-flash-image-preview',
+                model,
                 contents: { parts: [imagePart, textPart] },
             });
         } catch (error) {
@@ -93,14 +91,27 @@ async function callGeminiWithRetry(imagePart: object, textPart: object): Promise
  * It includes a fallback mechanism for prompts that might be blocked in certain regions.
  * @param imageDataUrl A data URL string of the source image (e.g., 'data:image/png;base64,...').
  * @param prompt The prompt to guide the image generation.
+ * @param apiKey The user's Gemini API key.
+ * @param model The AI model to use for generation.
  * @returns A promise that resolves to a base64-encoded image data URL of the generated image.
  */
-export async function generateDecadeImage(imageDataUrl: string, prompt: string): Promise<string> {
+export async function generateDecadeImage(
+    imageDataUrl: string,
+    prompt: string,
+    apiKey: string,
+    model: string
+): Promise<string> {
+  if (!apiKey) {
+    throw new Error("API Key is required to generate images.");
+  }
+
   const match = imageDataUrl.match(/^data:(image\/\w+);base64,(.*)$/);
   if (!match) {
     throw new Error("Invalid image data URL format. Expected 'data:image/...;base64,...'");
   }
   const [, mimeType, base64Data] = match;
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const imagePart = {
         inlineData: { mimeType, data: base64Data },
@@ -110,7 +121,7 @@ export async function generateDecadeImage(imageDataUrl: string, prompt: string):
     try {
         console.log("Attempting generation with original prompt...");
         const textPart = { text: prompt };
-        const response = await callGeminiWithRetry(imagePart, textPart);
+        const response = await callGeminiWithRetry(ai, model, imagePart, textPart);
         return processGeminiResponse(response);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
@@ -129,7 +140,7 @@ export async function generateDecadeImage(imageDataUrl: string, prompt: string):
                 const fallbackPrompt = getFallbackPrompt(decade);
                 console.log(`Attempting generation with fallback prompt for ${decade}...`);
                 const fallbackTextPart = { text: fallbackPrompt };
-                const fallbackResponse = await callGeminiWithRetry(imagePart, fallbackTextPart);
+                const fallbackResponse = await callGeminiWithRetry(ai, model, imagePart, fallbackTextPart);
                 return processGeminiResponse(fallbackResponse);
             } catch (fallbackError) {
                 console.error("Fallback prompt also failed.", fallbackError);
