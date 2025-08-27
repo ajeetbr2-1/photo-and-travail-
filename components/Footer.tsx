@@ -31,18 +31,6 @@ const Footer = () => {
                 {/* Left Side */}
                 <div className="hidden md:flex items-center gap-4 text-neutral-500 whitespace-nowrap">
                     <p>Powered by Gemini 2.5 Flash Image Preview</p>
-                    <span className="text-neutral-700" aria-hidden="true">|</span>
-                    <p>
-                        Created by{' '}
-                        <a
-                            href="https://x.com/ammaar"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-neutral-400 hover:text-yellow-400 transition-colors duration-200"
-                        >
-                            @ammaar
-                        </a>
-                    </p>
                 </div>
 
                 {/* Right Side */}
@@ -67,12 +55,12 @@ const Footer = () => {
 
                     <div className="flex items-center gap-4 sm:gap-6">
                         <a
-                            href="https://aistudio.google.com/apps"
+                            href="https://www.instagram.com/ajeetbr21?igsh=Z2NzNmRzZXpjNjRt"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-permanent-marker text-sm sm:text-base text-center text-black bg-yellow-400 py-2 px-4 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[1px_1px_0px_1px_rgba(0,0,0,0.2)] whitespace-nowrap"
                         >
-                            Apps on AI Studio
+                            Created by Aj
                         </a>
                         <a
                             href="https://gemini.google.com/"
