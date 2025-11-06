@@ -18,12 +18,48 @@ const GHOST_POLAROIDS_CONFIG = [
   { initial: { x: "100%", y: "150%", rotate: 10 }, transition: { delay: 0.3 } },
 ];
 
+// Emotional portrait configurations
+const EMOTIONS_CONFIG = [
+  { emotion: "Confidence", angle: "front view", title: "Best AI In The World – 2025" },
+  { emotion: "Visionary / Genius mode", angle: "slight side angle", title: "Designed To Lead" },
+  { emotion: "Focus & Determination", angle: "front view, intense gaze", title: "Vision Beyond Limits" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view", title: "Elite Mindset" },
+  { emotion: "Confidence", angle: "low-angle power shot", title: "Unstoppable Force" },
+  { emotion: "Visionary / Genius mode", angle: "profile view", title: "Future Architect" },
+  { emotion: "Focus & Determination", angle: "three-quarter angle", title: "Relentless Focus" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view, relaxed", title: "Born To Inspire" },
+  { emotion: "Confidence", angle: "slight angle from below", title: "Game Changer" },
+  { emotion: "Visionary / Genius mode", angle: "front view", title: "Innovation Personified" },
+  { emotion: "Focus & Determination", angle: "side profile", title: "Driven By Purpose" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view, powerful", title: "Leadership Redefined" },
+  { emotion: "Confidence", angle: "direct front, commanding", title: "Success Embodied" },
+  { emotion: "Visionary / Genius mode", angle: "side angle", title: "Thinking Ahead" },
+  { emotion: "Focus & Determination", angle: "front view", title: "Precision & Power" },
+  { emotion: "Calm / Leader / Elite personality", angle: "slight side view", title: "Elegant Authority" },
+  { emotion: "Confidence", angle: "front view", title: "Breaking Barriers" },
+  { emotion: "Visionary / Genius mode", angle: "low angle", title: "Strategic Genius" },
+  { emotion: "Focus & Determination", angle: "front view, intense", title: "Laser Focused" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view", title: "Timeless Excellence" },
+  { emotion: "Confidence", angle: "three-quarter view", title: "Fearless Leader" },
+  { emotion: "Visionary / Genius mode", angle: "front view", title: "Next Generation" },
+  { emotion: "Focus & Determination", angle: "profile", title: "Mission Driven" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view", title: "Pure Excellence" },
+  { emotion: "Confidence", angle: "front view", title: "Champion Mentality" },
+  { emotion: "Visionary / Genius mode", angle: "side view", title: "Revolutionary Mind" },
+  { emotion: "Focus & Determination", angle: "front view", title: "Achieving Greatness" },
+  { emotion: "Calm / Leader / Elite personality", angle: "front view", title: "Influential Power" },
+  { emotion: "Confidence", angle: "slight angle", title: "Limitless Potential" },
+  { emotion: "Visionary / Genius mode", angle: "front view", title: "Mastermind" },
+];
+
 
 type ImageStatus = 'pending' | 'done' | 'error';
 interface GeneratedImage {
     status: ImageStatus;
     url?: string;
     error?: string;
+    title?: string;
+    emotion?: string;
 }
 
 const primaryButtonClasses = "font-permanent-marker text-xl text-center text-black bg-yellow-400 py-3 px-8 rounded-sm transform transition-transform duration-200 hover:scale-105 hover:-rotate-2 hover:bg-yellow-300 shadow-[2px_2px_0px_2px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:bg-yellow-400";
@@ -65,11 +101,9 @@ function App() {
     const dragAreaRef = useRef<HTMLDivElement>(null);
     const isMobile = useMediaQuery('(max-width: 768px)');
     
-    // State for custom time range
-    const [startYear, setStartYear] = useState('1950');
-    const [endYear, setEndYear] = useState('2020');
-    const [steps, setSteps] = useState('6');
-    const [timePeriods, setTimePeriods] = useState<string[]>([]);
+    // State for emotional portraits
+    const [numPortraits, setNumPortraits] = useState('20');
+    const [portraitConfigs, setPortraitConfigs] = useState<typeof EMOTIONS_CONFIG>([]);
     const [cardPositions, setCardPositions] = useState<{top: string, left: string, rotate: number}[]>([]);
 
     useEffect(() => {
@@ -102,65 +136,76 @@ function App() {
     const handleGenerateClick = async () => {
         if (!uploadedImage || !userApiKey) return;
 
-        const numStart = parseInt(startYear, 10);
-        const numEnd = parseInt(endYear, 10);
-        const numSteps = parseInt(steps, 10);
+        const numImages = parseInt(numPortraits, 10);
     
-        if (isNaN(numStart) || isNaN(numEnd) || isNaN(numSteps) || numSteps < 2 || numSteps > 12 || numStart >= numEnd) {
-            alert("Please enter valid parameters. Start year must be less than end year, and the number of photos should be between 2 and 12.");
+        if (isNaN(numImages) || numImages < 15 || numImages > 30) {
+            alert("Please enter a valid number of portraits (between 15 and 30).");
             return;
         }
     
-        // Generate the list of years/decades based on user input
-        const years = Array.from({ length: numSteps }, (_, i) => {
-            const year = Math.round(numStart + i * ((numEnd - numStart) / (numSteps - 1)));
-            const interval = (numEnd - numStart) / (numSteps - 1);
-            // If interval is roughly a decade or more, format as '19xxs'
-            if (interval >= 8) {
-                 return `${Math.round(year / 10) * 10}s`;
-            }
-            return year.toString();
-        });
-        
-        const uniqueYears = [...new Set(years)];
-        setTimePeriods(uniqueYears);
-        setCardPositions(generatePositions(uniqueYears.length));
+        // Select portraits from the config
+        const selectedConfigs = EMOTIONS_CONFIG.slice(0, numImages);
+        setPortraitConfigs(selectedConfigs);
+        setCardPositions(generatePositions(selectedConfigs.length));
 
         setIsLoading(true);
         setAppState('generating');
         
         const initialImages: Record<string, GeneratedImage> = {};
-        uniqueYears.forEach(period => {
-            initialImages[period] = { status: 'pending' };
+        selectedConfigs.forEach((config, index) => {
+            const key = `portrait-${index}`;
+            initialImages[key] = { status: 'pending', title: config.title, emotion: config.emotion };
         });
         setGeneratedImages(initialImages);
 
         const concurrencyLimit = 2; // Process two at a time
-        const decadesQueue = [...uniqueYears];
+        const portraitsQueue = selectedConfigs.map((config, index) => ({ config, index }));
 
-        const processDecade = async (decade: string) => {
+        const processPortrait = async (item: { config: typeof EMOTIONS_CONFIG[0], index: number }) => {
+            const key = `portrait-${item.index}`;
             try {
-                const prompt = `Reimagine the person in this photo in the style of ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that time period. The output must be a photorealistic image showing the person clearly.`;
+                const prompt = `You are an expert AI Art Director with 40+ years of experience in commercial photography, cinematic lighting, portrait aesthetics, and emotional storytelling.
+
+Create an ultra-realistic, premium quality (8K + DSLR Depth) portrait photograph of the person in this image with the following specifications:
+
+EMOTION: ${item.config.emotion}
+ANGLE: ${item.config.angle}
+
+STYLE REQUIREMENTS:
+- Ultra-realistic, premium quality with professional DSLR depth of field
+- Cinematic lighting with dramatic contrast and sharp details
+- Glossy, perfect skin texture (no smoothing blur)
+- Futuristic / Elite / Super-premium feel
+- Professional color grading with film look
+- Add depth, highlights, and rim light on hair and face
+- Minimal, cinematic or blurred bokeh background
+
+EXPRESSION: The person should display ${item.config.emotion} with subtle, natural expressions (not exaggerated). Their face should clearly show this emotion through their eyes, jawline, and overall demeanor.
+
+CRITICAL: Maintain 100% facial identity consistency. The person must be instantly recognizable as the same individual from the uploaded photo. Keep exact face structure, eyes, jawline, hairstyle, and skin texture.
+
+OUTPUT: A photorealistic portrait in 4:5 aspect ratio (portrait format, perfect for Instagram/Facebook) showing the person clearly with the specified emotion and angle.`;
+                
                 const resultUrl = await generateDecadeImage(uploadedImage, prompt, userApiKey, selectedModel);
                 setGeneratedImages(prev => ({
                     ...prev,
-                    [decade]: { status: 'done', url: resultUrl },
+                    [key]: { status: 'done', url: resultUrl, title: item.config.title, emotion: item.config.emotion },
                 }));
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
                 setGeneratedImages(prev => ({
                     ...prev,
-                    [decade]: { status: 'error', error: errorMessage },
+                    [key]: { status: 'error', error: errorMessage, title: item.config.title, emotion: item.config.emotion },
                 }));
-                console.error(`Failed to generate image for ${decade}:`, err);
+                console.error(`Failed to generate portrait ${key}:`, err);
             }
         };
 
         const workers = Array(concurrencyLimit).fill(null).map(async () => {
-            while (decadesQueue.length > 0) {
-                const decade = decadesQueue.shift();
-                if (decade) {
-                    await processDecade(decade);
+            while (portraitsQueue.length > 0) {
+                const item = portraitsQueue.shift();
+                if (item) {
+                    await processPortrait(item);
                 }
             }
         });
@@ -171,29 +216,55 @@ function App() {
         setAppState('results-shown');
     };
 
-    const handleRegenerateDecade = async (decade: string) => {
+    const handleRegenerateDecade = async (key: string) => {
         if (!uploadedImage || !userApiKey) return;
 
-        if (generatedImages[decade]?.status === 'pending') return;
+        if (generatedImages[key]?.status === 'pending') return;
         
-        console.log(`Regenerating image for ${decade}...`);
+        console.log(`Regenerating portrait ${key}...`);
 
-        setGeneratedImages(prev => ({ ...prev, [decade]: { status: 'pending' } }));
+        // Find the config for this portrait
+        const index = parseInt(key.replace('portrait-', ''));
+        const config = portraitConfigs[index];
+        if (!config) return;
+
+        setGeneratedImages(prev => ({ ...prev, [key]: { status: 'pending', title: config.title, emotion: config.emotion } }));
 
         try {
-            const prompt = `Reimagine the person in this photo in the style of ${decade}. This includes clothing, hairstyle, photo quality, and the overall aesthetic of that decade. The output must be a photorealistic image showing the person clearly.`;
+            const prompt = `You are an expert AI Art Director with 40+ years of experience in commercial photography, cinematic lighting, portrait aesthetics, and emotional storytelling.
+
+Create an ultra-realistic, premium quality (8K + DSLR Depth) portrait photograph of the person in this image with the following specifications:
+
+EMOTION: ${config.emotion}
+ANGLE: ${config.angle}
+
+STYLE REQUIREMENTS:
+- Ultra-realistic, premium quality with professional DSLR depth of field
+- Cinematic lighting with dramatic contrast and sharp details
+- Glossy, perfect skin texture (no smoothing blur)
+- Futuristic / Elite / Super-premium feel
+- Professional color grading with film look
+- Add depth, highlights, and rim light on hair and face
+- Minimal, cinematic or blurred bokeh background
+
+EXPRESSION: The person should display ${config.emotion} with subtle, natural expressions (not exaggerated). Their face should clearly show this emotion through their eyes, jawline, and overall demeanor.
+
+CRITICAL: Maintain 100% facial identity consistency. The person must be instantly recognizable as the same individual from the uploaded photo. Keep exact face structure, eyes, jawline, hairstyle, and skin texture.
+
+OUTPUT: A photorealistic portrait in 4:5 aspect ratio (portrait format, perfect for Instagram/Facebook) showing the person clearly with the specified emotion and angle.`;
+            
             const resultUrl = await generateDecadeImage(uploadedImage, prompt, userApiKey, selectedModel);
             setGeneratedImages(prev => ({
                 ...prev,
-                [decade]: { status: 'done', url: resultUrl },
+                [key]: { status: 'done', url: resultUrl, title: config.title, emotion: config.emotion },
             }));
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
             setGeneratedImages(prev => ({
                 ...prev,
-                [decade]: { status: 'error', error: errorMessage },
+                [key]: { status: 'error', error: errorMessage, title: config.title, emotion: config.emotion },
             }));
-            console.error(`Failed to regenerate image for ${decade}:`, err);
+            console.error(`Failed to regenerate portrait ${key}:`, err);
         }
     };
     
@@ -203,12 +274,12 @@ function App() {
         setAppState('idle');
     };
 
-    const handleDownloadIndividualImage = (decade: string) => {
-        const image = generatedImages[decade];
+    const handleDownloadIndividualImage = (key: string) => {
+        const image = generatedImages[key];
         if (image?.status === 'done' && image.url) {
             const link = document.createElement('a');
             link.href = image.url;
-            link.download = `past-forward-${decade}.jpg`;
+            link.download = `emotional-portrait-${key}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -220,12 +291,12 @@ function App() {
         try {
             const imageData = Object.entries(generatedImages)
                 .filter(([, image]) => image.status === 'done' && image.url)
-                .reduce((acc, [decade, image]) => {
-                    acc[decade] = image!.url!;
+                .reduce((acc, [key, image]) => {
+                    acc[image!.title || key] = image!.url!;
                     return acc;
                 }, {} as Record<string, string>);
 
-            if (Object.keys(imageData).length < timePeriods.length) {
+            if (Object.keys(imageData).length < portraitConfigs.length) {
                 alert("Please wait for all images to finish generating before downloading the album.");
                 return;
             }
@@ -234,7 +305,7 @@ function App() {
 
             const link = document.createElement('a');
             link.href = albumDataUrl;
-            link.download = 'past-forward-album.jpg';
+            link.download = 'emotional-portraits-album.jpg';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -255,8 +326,8 @@ function App() {
             
             <div className="z-10 flex flex-col items-center justify-center w-full h-full flex-1 min-h-0">
                 <div className="text-center mb-8">
-                    <h1 className="text-6xl md:text-8xl font-caveat font-bold text-neutral-100">Past Forward</h1>
-                    <p className="font-permanent-marker text-neutral-300 mt-2 text-xl tracking-wide">Generate yourself through the decades.</p>
+                    <h1 className="text-6xl md:text-8xl font-caveat font-bold text-neutral-100">AI Art Director</h1>
+                    <p className="font-permanent-marker text-neutral-300 mt-2 text-xl tracking-wide">Generate ultra-realistic emotional portraits.</p>
                 </div>
                 
                  {/* Configuration Section */}
@@ -321,7 +392,7 @@ function App() {
                             </label>
                             <input id="file-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handleImageUpload} disabled={!userApiKey} />
                             <p className="mt-8 font-permanent-marker text-neutral-500 text-center max-w-xs text-lg">
-                                 {userApiKey ? 'Click the polaroid to upload your photo and start your journey through time.' : 'Please enter your Gemini API Key above to begin.'}
+                                 {userApiKey ? 'Click the polaroid to upload your photo and generate cinematic emotional portraits.' : 'Please enter your Gemini API Key above to begin.'}
                             </p>
                         </motion.div>
                     </div>
@@ -340,18 +411,19 @@ function App() {
                             status="done"
                          />
 
-                        <div className="w-full max-w-lg bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-6 my-4 flex flex-col sm:flex-row items-center justify-center gap-6 text-white shadow-lg">
+                        <div className="w-full max-w-lg bg-white/5 backdrop-blur-sm border border-white/20 rounded-lg p-6 my-4 flex flex-col items-center justify-center gap-6 text-white shadow-lg">
                             <div className="flex flex-col items-center">
-                                <label htmlFor="start-year" className="font-permanent-marker text-lg text-neutral-300 mb-2">Start Year</label>
-                                <input id="start-year" type="number" min="1900" max="2050" value={startYear} onChange={(e) => setStartYear(e.target.value)} className={rangeInputClasses}/>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <label htmlFor="end-year" className="font-permanent-marker text-lg text-neutral-300 mb-2">End Year</label>
-                                <input id="end-year" type="number" min="1900" max="2050" value={endYear} onChange={(e) => setEndYear(e.target.value)} className={rangeInputClasses}/>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <label htmlFor="steps" className="font-permanent-marker text-lg text-neutral-300 mb-2"># of Photos</label>
-                                <input id="steps" type="number" min="2" max="12" value={steps} onChange={(e) => setSteps(e.target.value)} className={rangeInputClasses}/>
+                                <label htmlFor="num-portraits" className="font-permanent-marker text-lg text-neutral-300 mb-2">Number of Portraits</label>
+                                <input 
+                                    id="num-portraits" 
+                                    type="number" 
+                                    min="15" 
+                                    max="30" 
+                                    value={numPortraits} 
+                                    onChange={(e) => setNumPortraits(e.target.value)} 
+                                    className={rangeInputClasses}
+                                />
+                                <p className="mt-2 text-sm text-neutral-400 font-permanent-marker">Generate 15-30 emotional portrait variations</p>
                             </div>
                         </div>
 
@@ -370,27 +442,28 @@ function App() {
                      <>
                         {isMobile ? (
                             <div className="w-full max-w-sm flex-1 overflow-y-auto mt-4 space-y-8 p-4">
-                                {timePeriods.map((decade) => (
-                                    <div key={decade} className="flex justify-center">
+                                {Object.keys(generatedImages).map((key) => (
+                                    <div key={key} className="flex justify-center">
                                          <PolaroidCard
-                                            caption={decade}
-                                            status={generatedImages[decade]?.status || 'pending'}
-                                            imageUrl={generatedImages[decade]?.url}
-                                            error={generatedImages[decade]?.error}
+                                            caption={generatedImages[key]?.title || key}
+                                            status={generatedImages[key]?.status || 'pending'}
+                                            imageUrl={generatedImages[key]?.url}
+                                            error={generatedImages[key]?.error}
                                             onShake={handleRegenerateDecade}
                                             onDownload={handleDownloadIndividualImage}
                                             isMobile={isMobile}
+                                            showTitleOverlay={true}
                                         />
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <div ref={dragAreaRef} className="relative w-full max-w-5xl h-[600px] mt-4">
-                                {timePeriods.map((decade, index) => {
+                                {Object.keys(generatedImages).map((key, index) => {
                                     const { top, left, rotate } = cardPositions[index] || { top: '50%', left: '50%', rotate: 0 };
                                     return (
                                         <motion.div
-                                            key={decade}
+                                            key={key}
                                             drag
                                             dragConstraints={dragAreaRef}
                                             dragMomentum={false}
@@ -407,13 +480,14 @@ function App() {
                                         >
                                             <PolaroidCard 
                                                 dragConstraintsRef={dragAreaRef}
-                                                caption={decade}
-                                                status={generatedImages[decade]?.status || 'pending'}
-                                                imageUrl={generatedImages[decade]?.url}
-                                                error={generatedImages[decade]?.error}
+                                                caption={generatedImages[key]?.title || key}
+                                                status={generatedImages[key]?.status || 'pending'}
+                                                imageUrl={generatedImages[key]?.url}
+                                                error={generatedImages[key]?.error}
                                                 onShake={handleRegenerateDecade}
                                                 onDownload={handleDownloadIndividualImage}
                                                 isMobile={isMobile}
+                                                showTitleOverlay={true}
                                             />
                                         </motion.div>
                                     );
