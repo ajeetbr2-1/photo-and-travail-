@@ -21,6 +21,11 @@ interface PolaroidCardProps {
     showTitleOverlay?: boolean;
 }
 
+const COPY_BLOCK_TEMPLATE = {
+    hashtags: '#AIArtDirector #EmotionalPortrait #CinematicPhotography #PremiumQuality #UltraRealistic #BestAI2025 #LeadershipGoals #VisionaryMindset #ElitePhotography #ProfessionalPortrait',
+    caption: 'Unleashing the power of AI to create stunning, ultra-realistic emotional portraits that capture the essence of leadership, vision, and determination.'
+};
+
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center h-full">
         <svg className="animate-spin h-8 w-8 text-neutral-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -111,9 +116,9 @@ const PolaroidCard: React.FC<PolaroidCardProps> = ({ imageUrl, caption, status, 
     const handleCopyToClipboard = () => {
         const copyText = `${caption}
 
-#AIArtDirector #EmotionalPortrait #CinematicPhotography #PremiumQuality #UltraRealistic #BestAI2025 #LeadershipGoals #VisionaryMindset #ElitePhotography #ProfessionalPortrait
+${COPY_BLOCK_TEMPLATE.hashtags}
 
-Unleashing the power of AI to create stunning, ultra-realistic emotional portraits that capture the essence of leadership, vision, and determination.`;
+${COPY_BLOCK_TEMPLATE.caption}`;
         
         navigator.clipboard.writeText(copyText).then(() => {
             setCopied(true);
@@ -192,8 +197,8 @@ Unleashing the power of AI to create stunning, ultra-realistic emotional portrai
                                     <h4 className="font-permanent-marker text-xl text-yellow-400">COPY BLOCK</h4>
                                     <div className="space-y-2 text-sm">
                                         <p className="font-bold">{caption}</p>
-                                        <p className="text-xs text-neutral-300">#AIArtDirector #EmotionalPortrait #CinematicPhotography #PremiumQuality #UltraRealistic #BestAI2025</p>
-                                        <p className="text-xs">Unleashing the power of AI to create stunning emotional portraits.</p>
+                                        <p className="text-xs text-neutral-300">{COPY_BLOCK_TEMPLATE.hashtags}</p>
+                                        <p className="text-xs">{COPY_BLOCK_TEMPLATE.caption}</p>
                                     </div>
                                     <div className="flex gap-2">
                                         <button
