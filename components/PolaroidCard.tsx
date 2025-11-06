@@ -18,6 +18,7 @@ interface PolaroidCardProps {
     onShake?: (caption: string) => void;
     onDownload?: (caption: string) => void;
     isMobile?: boolean;
+    showTitleOverlay?: boolean;
 }
 
 const LoadingSpinner = () => (
@@ -48,9 +49,11 @@ const Placeholder = () => (
 );
 
 
-const PolaroidCard: React.FC<PolaroidCardProps> = ({ imageUrl, caption, status, error, onShake, onDownload, isMobile }) => {
+const PolaroidCard: React.FC<PolaroidCardProps> = ({ imageUrl, caption, status, error, onShake, onDownload, isMobile, showTitleOverlay = false }) => {
     const [isDeveloped, setIsDeveloped] = useState(false);
     const [isImageLoaded, setIsImageLoaded] = useState(false);
+    const [showCopyBlock, setShowCopyBlock] = useState(false);
+    const [copied, setCopied] = useState(false);
     const lastShakeTime = useRef(0);
     const lastVelocity = useRef({ x: 0, y: 0 });
 
@@ -105,6 +108,19 @@ const PolaroidCard: React.FC<PolaroidCardProps> = ({ imageUrl, caption, status, 
         lastVelocity.current = { x, y };
     };
 
+    const handleCopyToClipboard = () => {
+        const copyText = `${caption}
+
+#AIArtDirector #EmotionalPortrait #CinematicPhotography #PremiumQuality #UltraRealistic #BestAI2025 #LeadershipGoals #VisionaryMindset #ElitePhotography #ProfessionalPortrait
+
+Unleashing the power of AI to create stunning, ultra-realistic emotional portraits that capture the essence of leadership, vision, and determination.`;
+        
+        navigator.clipboard.writeText(copyText).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
     const cardInnerContent = (
         <>
             <div className="w-full bg-neutral-900 shadow-inner flex-grow relative overflow-hidden group">
@@ -144,7 +160,61 @@ const PolaroidCard: React.FC<PolaroidCardProps> = ({ imageUrl, caption, status, 
                                     </svg>
                                 </button>
                             )}
+                            {showTitleOverlay && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowCopyBlock(!showCopyBlock);
+                                    }}
+                                    className="p-2 bg-black/50 rounded-full text-white hover:bg-black/75 focus:outline-none focus:ring-2 focus:ring-white"
+                                    aria-label="Show copy block"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            )}
                         </div>
+
+                        {/* Title overlay on image */}
+                        {showTitleOverlay && (
+                            <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <h3 className="font-permanent-marker text-yellow-400 text-lg text-center drop-shadow-lg">
+                                    {caption}
+                                </h3>
+                            </div>
+                        )}
+
+                        {/* Copy Block Modal */}
+                        {showCopyBlock && (
+                            <div className="absolute inset-0 z-30 bg-black/95 p-4 flex flex-col justify-center items-center">
+                                <div className="text-white text-center space-y-4 max-w-full">
+                                    <h4 className="font-permanent-marker text-xl text-yellow-400">COPY BLOCK</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <p className="font-bold">{caption}</p>
+                                        <p className="text-xs text-neutral-300">#AIArtDirector #EmotionalPortrait #CinematicPhotography #PremiumQuality #UltraRealistic #BestAI2025</p>
+                                        <p className="text-xs">Unleashing the power of AI to create stunning emotional portraits.</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleCopyToClipboard}
+                                            className="px-4 py-2 bg-yellow-400 text-black rounded font-permanent-marker text-sm hover:bg-yellow-300"
+                                        >
+                                            {copied ? 'Copied!' : 'Copy Text'}
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowCopyBlock(false);
+                                            }}
+                                            className="px-4 py-2 bg-white/20 text-white rounded font-permanent-marker text-sm hover:bg-white/30"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
 
                         {/* The developing chemical overlay - fades out */}
